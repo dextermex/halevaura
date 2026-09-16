@@ -77,3 +77,16 @@ jobs:
                 -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" --data "$body" | jq -r '"created \(.result.name) -> \(.result.content) (success: \(.success))"'
             fi
           done
+
+      - name: Verify the deployment and report domain state
+        run: |
+          echo "== https://$PROJECT.pages.dev =="
+          curl -sS -o /tmp/live.html -w 'HTTP %{http_code}\n' "https://$PROJECT.pages.dev/"
+          grep -o '<title>[^<]*</title>' /tmp/live.html || true
+          echo "== DNS as seen from the public resolver =="
+          echo "NS:    $(dig +short NS $DOMAIN | tr '\n' ' ')"
+          echo "A:     $(dig +short A $DOMAIN | tr '\n' ' ')"
+          echo "CNAME: $(dig +short CNAME www.$DOMAIN | tr '\n' ' ')"
+          echo "== Custom domains on the Pages project =="
+          curl -s "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT/domains" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[] | "\(.name): status=\(.status) certificate=\(.certificate_authority // "n/a") validation=\(.validation_data.status // "n/a") verification=\(.verification_data.status // "n/a")"'
