@@ -103,6 +103,12 @@ jobs:
           echo "phones A:     $(dig +short A phones.$DOMAIN | tr '\n' ' ')"
           echo "railway TXT @:      $(dig +short TXT _railway-verify.$DOMAIN | tr '\n' ' ')"
           echo "railway TXT phones: $(dig +short TXT _railway-verify.phones.$DOMAIN | tr '\n' ' ')"
+          ns=$(dig +short NS $DOMAIN | head -1)
+          echo "== Authoritative answers straight from $ns (no caching) =="
+          echo "phones CNAME (auth): $(dig +short @$ns CNAME phones.$DOMAIN | tr '\n' ' ')"
+          echo "phones A (auth):     $(dig +short @$ns A phones.$DOMAIN | tr '\n' ' ')"
+          echo "railway TXT @ (auth):      $(dig +short @$ns TXT _railway-verify.$DOMAIN | tr '\n' ' ')"
+          echo "railway TXT phones (auth): $(dig +short @$ns TXT _railway-verify.phones.$DOMAIN | tr '\n' ' ')"
           echo "phones HTTPS: $(curl -s -o /dev/null -w '%{http_code} server=%{content_type}' --max-time 15 https://phones.$DOMAIN/ || echo 'no response')"
           echo "apex HTTPS:   $(curl -s -o /dev/null -w '%{http_code}' --max-time 15 https://$DOMAIN/ || echo 'no response')"
           echo "== Custom domains on the Pages project =="
