@@ -1,0 +1,79 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [claude/magical-cray-houdqb]
+  workflow_dispatch:
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PROJECT: halevaura
+      DOMAIN: halevaura.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Check secrets
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must be set as repository secrets."
+            exit 1
+          fi
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Ensure Pages project exists
+        run: |
+          npx --yes wrangler@4 pages project create "$PROJECT" --production-branch "${GITHUB_REF_NAME}" 2>/dev/null \
+            && echo "created project $PROJECT" || echo "project $PROJECT already exists"
+
+      - name: Deploy
+        run: npx --yes wrangler@4 pages deploy dist --project-name "$PROJECT" --branch "${GITHUB_REF_NAME}" --commit-dirty=true
+
+      - name: Attach custom domains to the Pages project
+        run: |
+          for name in "$DOMAIN" "www.$DOMAIN"; do
+            code=$(curl -s -o /tmp/dom.json -w '%{http_code}' -X POST \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT/domains" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
+              --data "{\"name\":\"$name\"}")
+            if [ "$code" = "200" ] || [ "$code" = "201" ]; then echo "attached $name"
+            elif grep -q '8000010\|already' /tmp/dom.json; then echo "$name already attached"
+            else echo "::warning::could not attach $name (HTTP $code): $(cat /tmp/dom.json)"; fi
+          done
+
+      - name: Point DNS at Pages (only when the zone is on this Cloudflare account)
+        run: |
+          zone=$(curl -s "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[0].id // empty')
+          if [ -z "$zone" ]; then
+            echo "::warning::Zone $DOMAIN is not on this Cloudflare account (or the token cannot read zones). Add CNAME records for $DOMAIN and www.$DOMAIN -> $PROJECT.pages.dev at your DNS provider."
+            exit 0
+          fi
+          for name in "$DOMAIN" "www.$DOMAIN"; do
+            existing=$(curl -s "https://api.cloudflare.com/client/v4/zones/$zone/dns_records?name=$name" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '[.result[] | select(.type=="A" or .type=="AAAA" or .type=="CNAME")] | .[0].id // empty')
+            body="{\"type\":\"CNAME\",\"name\":\"$name\",\"content\":\"$PROJECT.pages.dev\",\"proxied\":true,\"ttl\":1}"
+            if [ -n "$existing" ]; then
+              curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$zone/dns_records/$existing" \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" --data "$body" | jq -r '"updated \(.result.name) -> \(.result.content) (success: \(.success))"'
+            else
+              curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$zone/dns_records" \
+                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" --data "$body" | jq -r '"created \(.result.name) -> \(.result.content) (success: \(.success))"'
+            fi
+          done

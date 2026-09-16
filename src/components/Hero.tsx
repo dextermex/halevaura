@@ -42,7 +42,7 @@ export default function Hero() {
       {!narrow && <div className="hero__sphere">
         <motion.div style={{ y: sphereY, scale: sphereS, width: '100%', height: '100%' }}
           initial={prm ? false : { opacity: 0, scale: 0.86, filter: 'blur(14px)' }} animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }} transition={{ duration: 0.9, delay: 0.06, ease: EASE_OUT }}>
-          <ChromeObject shape="sphere" pointer spin={0.06} className="hero__canvas" zoom={3.1} />
+          <ChromeObject shape="sphere" pointer spin={0.06} className="hero__canvas" zoom={3.1} quality="high" />
         </motion.div>
       </div>}
 

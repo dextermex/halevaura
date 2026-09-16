@@ -55,7 +55,7 @@ export default function BehindYou() {
         </div>
       </div>
       <div className="behind__photo">
-        <motion.img src="./media/farm.webp" alt="A rack of phones in the Texas publishing operation, lit in pink" style={{ y: photoY }} loading="lazy" decoding="async" />
+        <motion.img src="./media/farm.webp" width={1280} height={716} alt="A rack of phones in the Texas publishing operation, lit in pink" style={{ y: photoY }} loading="lazy" decoding="async" />
         <div className="behind__caption f-mono">TEXAS, US · PUBLISHING FLOOR · 04:12 CST · POSTED BY HAND</div>
       </div>
       <div className="container behind__stats">

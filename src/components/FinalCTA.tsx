@@ -13,7 +13,7 @@ export default function FinalCTA() {
   return (
     <section ref={ref} id="apply" className="cta">
       <motion.div className="cta__glow" style={{ opacity: glow }} aria-hidden />
-      <div className="cta__sphere" aria-hidden><motion.div style={{ y, width: '100%', height: '100%' }}><ChromeObject shape="sphere" spin={0.05} zoom={2.8} float={false} /></motion.div></div>
+      <div className="cta__sphere" aria-hidden><motion.div style={{ y, width: '100%', height: '100%' }}><ChromeObject shape="sphere" spin={0.05} zoom={2.8} float={false} quality="high" /></motion.div></div>
       <div className="container cta__inner">
         <Reveal amount={0.5}><span className="eyebrow">Apply</span></Reveal>
         <Reveal amount={0.5} delay={0.05}><h2 className="f-display grad-text" style={{ fontSize: 'var(--fs-display)', marginTop: 20 }}>You create. We handle everything else.</h2></Reveal>
