@@ -2,25 +2,19 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, useScroll, useTransform } from 'motion/react'
 import ChromeObject from '../three/ChromeObject'
 import { Magnetic, EASE_OUT, usePRM } from '../lib/motion'
-import { APPLY_HREF, REELS } from '../lib/data'
-import { UploadSheet, ReelImg, PipelineRows, ReferenceList } from './Screens'
+import { APPLY_HREF } from '../lib/data'
+import { UploadSheet, PipelineRows, ReferenceList } from './Screens'
 
 const chips = ['Built in-house by Aura x Halevora', 'Texas-based phone operation', 'Available today']
-
-function LiveCounter() {
-  const prm = usePRM()
-  const [v, setV] = useState(11840)
-  useEffect(() => {
-    if (prm) return
-    const id = setInterval(() => setV((x) => x + Math.floor(Math.random() * 7 + 1)), 900)
-    return () => clearInterval(id)
-  }, [prm])
-  return <span className="tabular">{v.toLocaleString('en-US')}</span>
-}
 
 export default function Hero() {
   const ref = useRef<HTMLElement>(null)
   const prm = usePRM()
+  const [narrow, setNarrow] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 900px)')
+    const on = () => setNarrow(mq.matches); on(); mq.addEventListener('change', on); return () => mq.removeEventListener('change', on)
+  }, [])
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] })
   const sphereY = useTransform(scrollYProgress, [0, 1], ['0%', prm ? '0%' : '12%'])
   const sphereS = useTransform(scrollYProgress, [0, 1], [1, prm ? 1 : 1.08])
@@ -28,8 +22,6 @@ export default function Hero() {
   const fanFar = useTransform(scrollYProgress, [0, 1], [12, prm ? 12 : 18])
   const fanMid = useTransform(scrollYProgress, [0, 1], [8, prm ? 8 : 14])
   const fanNear = useTransform(scrollYProgress, [0, 1], [5, prm ? 5 : 11])
-  const phoneRy = useTransform(scrollYProgress, [0, 1], [-14, prm ? -14 : -4])
-  const phoneRx = useTransform(scrollYProgress, [0, 1], [8, prm ? 8 : 2])
   const textOp = useTransform(scrollYProgress, [0, 0.7], [1, 0.2])
 
   const lines = ['You create.', 'We handle']
@@ -47,15 +39,20 @@ export default function Hero() {
   return (
     <section ref={ref} id="top" className="hero">
       <div className="hero__glow" aria-hidden />
-      <div className="hero__sphere">
+      {!narrow && <div className="hero__sphere">
         <motion.div style={{ y: sphereY, scale: sphereS, width: '100%', height: '100%' }}
           initial={prm ? false : { opacity: 0, scale: 0.86, filter: 'blur(14px)' }} animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }} transition={{ duration: 0.9, delay: 0.06, ease: EASE_OUT }}>
           <ChromeObject shape="sphere" pointer spin={0.06} className="hero__canvas" zoom={3.1} />
         </motion.div>
-      </div>
+      </div>}
 
       <div className="container hero__grid">
         <motion.div className="hero__copy" style={{ opacity: textOp }}>
+          {narrow && (
+            <motion.div className="hero__miniobj" initial={prm ? false : { opacity: 0, scale: 0.86 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.9, ease: EASE_OUT }}>
+              <ChromeObject shape="sphere" spin={0.1} zoom={4.6} float={false} />
+            </motion.div>
+          )}
           <motion.span className="eyebrow" initial={prm ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1, ease: EASE_OUT }}>
             Built by Aura and Halevora
           </motion.span>
@@ -91,24 +88,6 @@ export default function Hero() {
           </motion.div>
           <motion.div className="hero__win hero__win--near" style={{ y: winY, rotateY: fanNear }} {...win(2)}>
             <UploadSheet />
-          </motion.div>
-          <motion.div className="hero__phone" style={{ rotateY: phoneRy, rotateX: phoneRx }} initial={prm ? false : { opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.7, ease: EASE_OUT }}>
-            <div className="device" style={{ '--dev-w': 'var(--hero-dev-w)' } as React.CSSProperties}>
-              <span className="device__edge device__edge--vol" /><span className="device__edge device__edge--vol2" /><span className="device__edge device__edge--pwr" />
-              <div className="device__screen">
-                <div className="device__island" /><div className="device__glare" />
-                <ReelImg reel={REELS[0]} fill />
-                <div className="reel__scrim" />
-                <div style={{ position: 'absolute', top: 44, left: 12, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(15,10,19,0.44)', backdropFilter: 'blur(12px)', color: '#fff', borderRadius: 999, padding: '5px 9px', fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.08em' }}>
-                  <span className="dot dot--live" style={{ animation: 'breathe 2.4s var(--e-in-out) infinite' }} /> LIVE
-                </div>
-                <div style={{ position: 'absolute', left: 14, right: 14, bottom: 20, color: '#fff' }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.08em', opacity: 0.8 }}>VIEWS / LAST HOUR</div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, letterSpacing: '-0.03em', lineHeight: 1.1 }}><LiveCounter /></div>
-                  <div style={{ fontSize: 11, marginTop: 6, opacity: 0.9 }}>Posted by hand · Texas</div>
-                </div>
-              </div>
-            </div>
           </motion.div>
         </div>
       </div>

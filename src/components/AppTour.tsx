@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion, useMotionValueEvent, useScroll, useTransform } from 'motion/react'
 import { Reveal, usePRM } from '../lib/motion'
-import { ReferenceList, UploadSheet, NetworkScreen, GrowthScreen, ResearchScreen, ChatScreen } from './Screens'
+import { ReferenceList, UploadSheet, NetworkScreen, GrowthScreen, ResearchScreen, PipelineRows } from './Screens'
 
 const STEPS = [
   { id: 'references', eyebrow: 'Weekly content list', h: 'Never wonder what to film again.', b: 'Every week your marketing manager drops a fresh list. Each reference is a real reel you can watch, with notes on what to replicate, the hook, the angle and the caption vibe. Tap one to see how it actually performed before you film. No guessing, no blank page, no group chat archaeology.', f: ['Real reels to watch, not written briefs', 'Hook, angle and caption vibe on every card', 'Live performance on each reference before you film'] },
@@ -13,7 +13,16 @@ const STEPS = [
 
 function Screen({ i }: { i: number }) {
   if (i === 0) return <ReferenceList />
-  if (i === 1) return <div style={{ display: 'grid', placeItems: 'center', minHeight: 420 }}><UploadSheet big /></div>
+  if (i === 1) return (
+    <div className="tour__upload">
+      <UploadSheet big />
+      <div className="tour__pipeline">
+        <div className="ui-label" style={{ marginBottom: 4 }}>Status · 12 clips</div>
+        <PipelineRows />
+        <div className="ui-sub" style={{ marginTop: 12, fontSize: 11 }}>Every clip is matched, edited, scheduled and posted. You only see the status.</div>
+      </div>
+    </div>
+  )
   if (i === 2) return <NetworkScreen />
   if (i === 3) return <GrowthScreen />
   return <ResearchScreen />
@@ -41,8 +50,6 @@ export default function AppTour() {
   }, [])
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
   useMotionValueEvent(scrollYProgress, 'change', (p) => { const n = Math.min(STEPS.length - 1, Math.max(0, Math.floor(p * STEPS.length))); if (n !== active) setActive(n) })
-  const phoneRy = useTransform(scrollYProgress, [0, 1], prm ? [7, 7] : [26, -12])
-  const phoneRx = useTransform(scrollYProgress, [0, 1], prm ? [0, 0] : [-10, 6])
   const rail = useTransform(scrollYProgress, [0, 1], [0, 1])
 
   return (
@@ -81,12 +88,6 @@ export default function AppTour() {
                       <Screen i={active} />
                     </motion.div>
                   </AnimatePresence>
-                </div>
-              </motion.div>
-              <motion.div className="tour__phone" style={{ rotateY: phoneRy, rotateX: phoneRx }}>
-                <div className="device" style={{ '--dev-w': '220px' } as React.CSSProperties}>
-                  <span className="device__edge device__edge--vol" /><span className="device__edge device__edge--pwr" />
-                  <div className="device__screen"><div className="device__island" /><ChatScreen /></div>
                 </div>
               </motion.div>
             </div>

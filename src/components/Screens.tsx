@@ -10,7 +10,7 @@ export function ReelImg({ reel, fill = false }: { reel: (typeof REELS)[number]; 
   if (err) {
     return (
       <div className={`reel reel--placeholder`} style={fill ? { position: 'absolute', inset: 0, borderRadius: 0, boxShadow: 'none', aspectRatio: 'auto' } : undefined}>
-        <div className="reel__ph"><b />Reel frame {reel.id}<br />drop file in /reels</div>
+        <div className="reel__ph"><b /><span>Frame {reel.id}</span></div>
       </div>
     )
   }

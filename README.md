@@ -19,6 +19,28 @@ npm run build      # static build in dist/ (relative asset paths, deploys anywhe
 npm run preview
 ```
 
+## Deploy on Cloudflare Pages
+
+The build is fully static, so Cloudflare Pages serves it with no functions or config file.
+
+1. Cloudflare dashboard, Workers & Pages, Create, Pages, Connect to Git, pick `dextermex/halevaura`.
+2. Production branch: `claude/magical-cray-houdqb` (the repository's default branch). Framework preset: Vite.
+   Build command `npm run build`, build output directory `dist`. No environment variables are needed;
+   `.npmrc` already resolves the peer-dependency conflict.
+3. Custom domains: add `halevaura.com` and `www.halevaura.com`. If the domain's DNS is on Cloudflare, the
+   records are created for you. If it is elsewhere, either move the nameservers to Cloudflare or add the
+   CNAME records the dashboard shows.
+
+Every push to the production branch redeploys automatically. `public/_headers` sets long cache lifetimes
+for hashed assets.
+
+Command-line alternative (needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`):
+
+```
+npm run build
+npx wrangler pages deploy dist --project-name halevaura
+```
+
 ## Structure
 
 ```

@@ -26,7 +26,7 @@ export default function HowItWorks() {
           {steps.map((s, i) => (
             <Reveal key={s.n} delay={i * 0.1} className="step">
               <div className="step__tile glass">
-                <ChromeObject shape={s.shape} spin={i % 2 ? -0.5 : 0.5} zoom={3.6} float className="step__obj" />
+                <ChromeObject shape={s.shape} spin={i % 2 ? -0.5 : 0.5} zoom={4.8} float className="step__obj" />
               </div>
               <div className="step__num f-serif">{s.n}</div>
               <h3 className="f-h3" style={{ marginTop: 6 }}>{s.t}</h3>
