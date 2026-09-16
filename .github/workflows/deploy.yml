@@ -99,7 +99,12 @@ jobs:
           echo "== DNS as seen from the public resolver =="
           echo "NS:    $(dig +short NS $DOMAIN | tr '\n' ' ')"
           echo "A:     $(dig +short A $DOMAIN | tr '\n' ' ')"
-          echo "phones subdomain (must stay on Railway): $(dig +short CNAME phones.$DOMAIN | tr '\n' ' ')"
+          echo "phones CNAME: $(dig +short CNAME phones.$DOMAIN | tr '\n' ' ')"
+          echo "phones A:     $(dig +short A phones.$DOMAIN | tr '\n' ' ')"
+          echo "railway TXT @:      $(dig +short TXT _railway-verify.$DOMAIN | tr '\n' ' ')"
+          echo "railway TXT phones: $(dig +short TXT _railway-verify.phones.$DOMAIN | tr '\n' ' ')"
+          echo "phones HTTPS: $(curl -s -o /dev/null -w '%{http_code} server=%{content_type}' --max-time 15 https://phones.$DOMAIN/ || echo 'no response')"
+          echo "apex HTTPS:   $(curl -s -o /dev/null -w '%{http_code}' --max-time 15 https://$DOMAIN/ || echo 'no response')"
           echo "== Custom domains on the Pages project =="
           curl -s "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT/domains" \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[] | "\(.name): status=\(.status) certificate=\(.certificate_authority // "n/a") validation=\(.validation_data.status // "n/a") verification=\(.verification_data.status // "n/a")"'
