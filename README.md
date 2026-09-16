@@ -27,9 +27,8 @@ The build is fully static, so Cloudflare Pages serves it with no functions or co
 2. Production branch: `claude/magical-cray-houdqb` (the repository's default branch). Framework preset: Vite.
    Build command `npm run build`, build output directory `dist`. No environment variables are needed;
    `.npmrc` already resolves the peer-dependency conflict.
-3. Custom domains: add `halevaura.com` and `www.halevaura.com`. If the domain's DNS is on Cloudflare, the
-   records are created for you. If it is elsewhere, either move the nameservers to Cloudflare or add the
-   CNAME records the dashboard shows.
+3. Custom domain: `halevaura.com` only. The deploy workflow attaches it and, when the zone is on Cloudflare DNS,
+   rewrites just the apex record. Subdomains such as `phones.` are never touched and stay on their own hosting.
 
 Every push to the production branch redeploys automatically. `public/_headers` sets long cache lifetimes
 for hashed assets.

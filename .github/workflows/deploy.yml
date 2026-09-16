@@ -45,9 +45,12 @@ jobs:
       - name: Deploy
         run: npx --yes wrangler@4 pages deploy dist --project-name "$PROJECT" --branch "${GITHUB_REF_NAME}" --commit-dirty=true
 
-      - name: Attach custom domains to the Pages project
+      - name: Attach the apex domain to the Pages project (subdomains are never touched)
         run: |
-          for name in "$DOMAIN" "www.$DOMAIN"; do
+          # Remove the www alias if an earlier run attached it: the site runs on the apex only.
+          curl -s -o /dev/null -X DELETE "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT/domains/www.$DOMAIN" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" || true
+          for name in "$DOMAIN"; do
             code=$(curl -s -o /tmp/dom.json -w '%{http_code}' -X POST \
               "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT/domains" \
               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" \
@@ -57,15 +60,17 @@ jobs:
             else echo "::warning::could not attach $name (HTTP $code): $(cat /tmp/dom.json)"; fi
           done
 
-      - name: Point DNS at Pages (only when the zone is on this Cloudflare account)
+      - name: Point the apex record at Pages (only when the zone is on this Cloudflare account)
         run: |
+          # Only the record named exactly "$DOMAIN" is ever read or written here. Every other record in the
+          # zone (phones.*, _railway-verify, mail, anything else) is left exactly as it is.
           zone=$(curl -s "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN" \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[0].id // empty')
           if [ -z "$zone" ]; then
-            echo "::warning::Zone $DOMAIN is not on this Cloudflare account (or the token cannot read zones). Add CNAME records for $DOMAIN and www.$DOMAIN -> $PROJECT.pages.dev at your DNS provider."
+            echo "::warning::Zone $DOMAIN is not on this Cloudflare account (or the token cannot read zones). Point the apex record for $DOMAIN at $PROJECT.pages.dev at your DNS provider."
             exit 0
           fi
-          for name in "$DOMAIN" "www.$DOMAIN"; do
+          for name in "$DOMAIN"; do
             existing=$(curl -s "https://api.cloudflare.com/client/v4/zones/$zone/dns_records?name=$name" \
               -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '[.result[] | select(.type=="A" or .type=="AAAA" or .type=="CNAME")] | .[0].id // empty')
             body="{\"type\":\"CNAME\",\"name\":\"$name\",\"content\":\"$PROJECT.pages.dev\",\"proxied\":true,\"ttl\":1}"
@@ -86,7 +91,7 @@ jobs:
           echo "== DNS as seen from the public resolver =="
           echo "NS:    $(dig +short NS $DOMAIN | tr '\n' ' ')"
           echo "A:     $(dig +short A $DOMAIN | tr '\n' ' ')"
-          echo "CNAME: $(dig +short CNAME www.$DOMAIN | tr '\n' ' ')"
+          echo "phones subdomain (must stay on Railway): $(dig +short CNAME phones.$DOMAIN | tr '\n' ' ')"
           echo "== Custom domains on the Pages project =="
           curl -s "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/$PROJECT/domains" \
             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[] | "\(.name): status=\(.status) certificate=\(.certificate_authority // "n/a") validation=\(.validation_data.status // "n/a") verification=\(.verification_data.status // "n/a")"'
