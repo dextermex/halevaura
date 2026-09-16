@@ -71,8 +71,15 @@ jobs:
             exit 0
           fi
           for name in "$DOMAIN"; do
-            existing=$(curl -s "https://api.cloudflare.com/client/v4/zones/$zone/dns_records?name=$name" \
-              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '[.result[] | select(.type=="A" or .type=="AAAA" or .type=="CNAME")] | .[0].id // empty')
+            records=$(curl -s "https://api.cloudflare.com/client/v4/zones/$zone/dns_records?name=$name" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN")
+            if [ "$(echo "$records" | jq -r '.success')" != "true" ]; then
+              echo "::warning::The token cannot read DNS records for $DOMAIN (needs Zone > DNS > Edit). Skipping; set the apex CNAME to $PROJECT.pages.dev by hand if it is not already."
+              exit 0
+            fi
+            current=$(echo "$records" | jq -r '[.result[] | select(.type=="A" or .type=="AAAA" or .type=="CNAME")] | .[0] | "\(.type) \(.content)"')
+            if [ "$current" = "CNAME $PROJECT.pages.dev" ]; then echo "$name already points at $PROJECT.pages.dev"; continue; fi
+            existing=$(echo "$records" | jq -r '[.result[] | select(.type=="A" or .type=="AAAA" or .type=="CNAME")] | .[0].id // empty')
             body="{\"type\":\"CNAME\",\"name\":\"$name\",\"content\":\"$PROJECT.pages.dev\",\"proxied\":true,\"ttl\":1}"
             if [ -n "$existing" ]; then
               curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$zone/dns_records/$existing" \
@@ -84,6 +91,7 @@ jobs:
           done
 
       - name: Verify the deployment and report domain state
+        if: always()
         run: |
           echo "== https://$PROJECT.pages.dev =="
           curl -sS -o /tmp/live.html -w 'HTTP %{http_code}\n' "https://$PROJECT.pages.dev/"
